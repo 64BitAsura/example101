@@ -43,6 +43,7 @@ import example101.bean.Basket;
 import example101.bean.DiscountByCount;
 import example101.bean.Discounts;
 import example101.bean.Item;
+import example101.exception.BasketNotAvailableException;
 import example101.exception.ItemPriceNotAvailableException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -138,6 +139,12 @@ public class SmartCheckoutService {
 			JSONObject json = new JSONObject();
 			json.put("message", message);
 			return Response.status(Status.NOT_FOUND).entity(json.toString()).build();
+		} catch (BasketNotAvailableException e) {
+			LOGGER.error("basket not found", e);
+			String message = new String("basket is missing");
+			JSONObject json = new JSONObject();
+			json.put("message", message);
+			return Response.status(Status.NOT_FOUND).entity(json.toString()).build();
 		}
 		return Response.ok(updated).build();
 	}
@@ -160,7 +167,16 @@ public class SmartCheckoutService {
 			json.put("message", message);
 			return Response.status(Status.NOT_FOUND).entity(json.toString()).build();
 		}
-		final Basket updated = removeItem(basket, item);
+		Basket updated = null;
+		try {
+			updated = removeItem(basket, item);
+		} catch (BasketNotAvailableException e) {
+			LOGGER.error("basket not found", e);
+			String message = new String("basket is missing");
+			JSONObject json = new JSONObject();
+			json.put("message", message);
+			return Response.status(Status.NOT_FOUND).entity(json.toString()).build();
+		}
 		return Response.ok(updated).build();
 	}
 
@@ -211,8 +227,13 @@ public class SmartCheckoutService {
 		return Response.status(Status.CREATED).entity(new Basket(basket.getId(), basket.getItems(), true, basket.getTotalPrice())).build();
 	}
 
-	private Basket removeItem(Basket basket, Item item) {
+	private Basket removeItem(Basket basket, Item item) throws BasketNotAvailableException {
 		synchronized (basket) {
+			final String basketId = basket.getId();
+			basket = activeBasket.get(basketId);
+			if (basket == null) {
+				throw new BasketNotAvailableException(basketId);
+			}
 			ImmutableMap.Builder<String, Item> builder = new ImmutableMap.Builder<>();
 			for (Item oldImt : basket.getItems().values()) {
 				if (item.equals(oldImt)) {
@@ -231,8 +252,13 @@ public class SmartCheckoutService {
 		}
 	}
 
-	private Basket updateItem(Basket basket, Item item) throws ItemPriceNotAvailableException {
+	private Basket updateItem(Basket basket, Item item) throws ItemPriceNotAvailableException, BasketNotAvailableException {
 		synchronized (basket) {
+			final String basketId = basket.getId();
+			basket = activeBasket.get(basketId);
+			if (basket == null) {
+				throw new BasketNotAvailableException(basketId);
+			}
 			Item update = itemPriceCalculator.cal(item);
 			jersey.repackaged.com.google.common.collect.ImmutableMap.Builder<String, Item> builder = new ImmutableMap.Builder<String, Item>();
 			for (Item oldItm : basket.getItems().values()) {
