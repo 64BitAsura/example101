@@ -1,4 +1,4 @@
-!https://circleci.com/gh/sambathl/example101/tree/master.svg?style=svg!:https://circleci.com/gh/sambathl/example101/tree/master
+[![circleci](https://circleci.com/gh/sambathl/example101/tree/master.svg?style=svg)](https://circleci.com/gh/sambathl/example101/tree/master)
 
 # example101
 
