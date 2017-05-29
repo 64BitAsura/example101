@@ -11,6 +11,5 @@ to package as docker image, docker must available in machine
 
 $ mvn clean package docker:build
 
-
 checkout api microservice depend upon discount api microservice, but for testing
 purpose it is mocked
